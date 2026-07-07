@@ -188,6 +188,10 @@
   <div class="sheet-h"><h2>Settings</h2><button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
 
   <div class="sec">
+    <h3>Your topics</h3>
+    <button class="btn ghost full" id="openTopics">Choose topics</button>
+    <p class="hint" id="topicsSummary"></p>
+
     <h3>Feeds</h3>
     <div id="feedList"></div>
     <div class="row" style="margin-top:10px">
@@ -236,6 +240,21 @@
   <div class="sec" id="digestBody"></div>
 </div>
 
+<!-- Topic picker sheet -->
+<div class="sheet" id="topicSheet" role="dialog" aria-label="Choose your topics">
+  <div class="grab"></div>
+  <div class="sheet-h"><h2>Your topics</h2></div>
+  <div class="sec">
+    <p class="hint">Tap the topics you want in your feed. Only these get pulled, so pick a few for a faster, tighter Dispatch. You can change this anytime in Settings.</p>
+    <div id="topicPicker" style="display:flex; flex-wrap:wrap; gap:8px; margin:14px 0"></div>
+    <div class="row">
+      <button class="btn ghost" id="topicAll" style="flex:1">Select all</button>
+      <button class="btn ghost" id="topicNone" style="flex:1">Clear</button>
+    </div>
+    <button class="btn full" id="topicDone" style="margin-top:16px">Show my Dispatch</button>
+  </div>
+</div>
+
 <script>
 "use strict";
 
@@ -275,47 +294,140 @@ const DEFAULTS = {
     // Football
     {name:'BBC Football', cat:'Football', url:'https://feeds.bbci.co.uk/sport/football/rss.xml'},
     {name:'Guardian Football', cat:'Football', url:'https://www.theguardian.com/football/rss'},
-    {name:'ESPN Soccer', cat:'Football', url:'http://www.espn.com/espn/rss/soccer/news'},
-    // Arts (art / music / cinema)
+    {name:'ESPN Soccer', cat:'Football', url:'https://www.espn.com/espn/rss/soccer/news'},
+    {name:'Sky Sports Football', cat:'Football', url:'https://www.skysports.com/rss/12040'},
+    {name:'Football365', cat:'Football', url:'https://www.football365.com/feed'},
+    {name:'Club finances (Google News)', cat:'Football', url:'https://news.google.com/rss/search?q=football+club+finances+OR+takeover&hl=en-US&gl=US&ceid=US:en'},
+    {name:'Transfers (Google News)', cat:'Football', url:'https://news.google.com/rss/search?q=football+transfer+news&hl=en-US&gl=US&ceid=US:en'},
+    // Arts
     {name:'Hyperallergic', cat:'Arts', url:'https://hyperallergic.com/feed'},
+    {name:'Guardian Art & Design', cat:'Arts', url:'https://www.theguardian.com/artanddesign/rss'},
     {name:'Guardian Music', cat:'Arts', url:'https://www.theguardian.com/music/rss'},
-    {name:'Guardian Film', cat:'Arts', url:'https://www.theguardian.com/film/rss'},
+    {name:'Guardian Books', cat:'Arts', url:'https://www.theguardian.com/books/rss'},
+    {name:'NYT Arts', cat:'Arts', url:'https://rss.nytimes.com/services/xml/rss/nyt/Arts.xml'},
+    {name:'Pitchfork (Google News)', cat:'Arts', url:'https://news.google.com/rss/search?q=site:pitchfork.com&hl=en-US&gl=US&ceid=US:en'},
     // World
     {name:'Al Jazeera', cat:'World', url:'https://www.aljazeera.com/xml/rss/all.xml'},
     {name:'BBC World', cat:'World', url:'https://feeds.bbci.co.uk/news/world/rss.xml'},
     {name:'NYT World', cat:'World', url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'},
+    {name:'Guardian World', cat:'World', url:'https://www.theguardian.com/world/rss'},
+    {name:'NPR World', cat:'World', url:'https://feeds.npr.org/1004/rss.xml'},
+    {name:'AP News (Google News)', cat:'World', url:'https://news.google.com/rss/search?q=site:apnews.com&hl=en-US&gl=US&ceid=US:en'},
     // India
-    {name:'Scroll.in', cat:'India', url:'https://feeds.feedburner.com/ScrollinArticles.rss'},
     {name:'Times of India', cat:'India', url:'https://timesofindia.indiatimes.com/rssfeedstopstories.cms'},
-    {name:'The Hindu (via Google News)', cat:'India', url:'https://news.google.com/rss/search?q=site:thehindu.com&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'The Hindu (Google News)', cat:'India', url:'https://news.google.com/rss/search?q=site:thehindu.com&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'Indian Express (Google News)', cat:'India', url:'https://news.google.com/rss/search?q=site:indianexpress.com&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'Scroll (Google News)', cat:'India', url:'https://news.google.com/rss/search?q=site:scroll.in&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'Livemint (Google News)', cat:'India', url:'https://news.google.com/rss/search?q=site:livemint.com&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'NDTV', cat:'India', url:'https://feeds.feedburner.com/ndtvnews-top-stories'},
     // Geopolitics
-    {name:'War on the Rocks', cat:'Geopolitics', url:'https://warontherocks.com/feed'},
-    {name:'Crisis Group', cat:'Geopolitics', url:'https://www.crisisgroup.org/rss'},
-    {name:'The Diplomat (via Google News)', cat:'Geopolitics', url:'https://news.google.com/rss/search?q=site:thediplomat.com&hl=en-IN&gl=IN&ceid=IN:en'},
-    // Fintech / business
-    {name:'BBC Business', cat:'Fintech', url:'https://feeds.bbci.co.uk/news/business/rss.xml'},
-    {name:'Fintech Takes', cat:'Fintech', url:'https://fintechtakes.com/feed'},
-    {name:'India Fintech (via Google News)', cat:'Fintech', url:'https://news.google.com/rss/search?q=india+fintech+OR+UPI+OR+RBI+when:7d&hl=en-IN&gl=IN&ceid=IN:en'},
-    // Tech / product
-    {name:'The Verge', cat:'Tech', url:'https://www.theverge.com/rss/index.xml'},
+    {name:'The Diplomat (Google News)', cat:'Geopolitics', url:'https://news.google.com/rss/search?q=site:thediplomat.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'War on the Rocks (Google News)', cat:'Geopolitics', url:'https://news.google.com/rss/search?q=site:warontherocks.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'Foreign Policy (Google News)', cat:'Geopolitics', url:'https://news.google.com/rss/search?q=site:foreignpolicy.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'Foreign Affairs (Google News)', cat:'Geopolitics', url:'https://news.google.com/rss/search?q=site:foreignaffairs.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'Crisis Group (Google News)', cat:'Geopolitics', url:'https://news.google.com/rss/search?q=site:crisisgroup.org&hl=en-US&gl=US&ceid=US:en'},
+    {name:'Geopolitics (Google News)', cat:'Geopolitics', url:'https://news.google.com/rss/search?q=geopolitics+OR+diplomacy&hl=en-US&gl=US&ceid=US:en'},
+    // Business
+    {name:'Guardian Business', cat:'Business', url:'https://www.theguardian.com/business/rss'},
+    {name:'NYT Business', cat:'Business', url:'https://rss.nytimes.com/services/xml/rss/nyt/Business.xml'},
+    {name:'BBC Business', cat:'Business', url:'https://feeds.bbci.co.uk/news/business/rss.xml'},
+    {name:'MarketWatch', cat:'Business', url:'http://feeds.marketwatch.com/marketwatch/topstories'},
+    {name:'Forbes Business', cat:'Business', url:'https://www.forbes.com/business/feed/'},
+    {name:'CNBC (Google News)', cat:'Business', url:'https://news.google.com/rss/search?q=site:cnbc.com&hl=en-US&gl=US&ceid=US:en'},
+    // Fintech
+    {name:'India fintech (Google News)', cat:'Fintech', url:'https://news.google.com/rss/search?q=India+fintech&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'UPI & RBI (Google News)', cat:'Fintech', url:'https://news.google.com/rss/search?q=UPI+RBI+payments&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'TechCrunch Fintech', cat:'Fintech', url:'https://techcrunch.com/category/fintech/feed/'},
+    {name:'The Financial Brand', cat:'Fintech', url:'https://thefinancialbrand.com/feed/'},
+    {name:'Finextra (Google News)', cat:'Fintech', url:'https://news.google.com/rss/search?q=site:finextra.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'Fintech Takes (Google News)', cat:'Fintech', url:'https://news.google.com/rss/search?q=site:fintechtakes.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'PYMNTS (Google News)', cat:'Fintech', url:'https://news.google.com/rss/search?q=site:pymnts.com&hl=en-US&gl=US&ceid=US:en'},
+    // Tech
     {name:'TechCrunch', cat:'Tech', url:'https://techcrunch.com/feed/'},
     {name:'Wired', cat:'Tech', url:'https://www.wired.com/feed/rss'},
-    {name:'Hacker News (100+)', cat:'Tech', url:'https://hnrss.org/frontpage?points=100'}
+    {name:'Ars Technica', cat:'Tech', url:'http://feeds.arstechnica.com/arstechnica/index/'},
+    {name:'Engadget', cat:'Tech', url:'https://www.engadget.com/rss.xml'},
+    {name:'The Register', cat:'Tech', url:'https://www.theregister.com/headlines.atom'},
+    {name:'The Verge (Google News)', cat:'Tech', url:'https://news.google.com/rss/search?q=site:theverge.com&hl=en-US&gl=US&ceid=US:en'},
+    // AI
+    {name:'MIT Technology Review', cat:'AI', url:'https://www.technologyreview.com/feed/'},
+    {name:'Hugging Face', cat:'AI', url:'https://huggingface.co/blog/feed.xml'},
+    {name:'VentureBeat AI', cat:'AI', url:'https://venturebeat.com/category/ai/feed/'},
+    {name:'AI news (Google News)', cat:'AI', url:'https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en'},
+    {name:'OpenAI & Anthropic (Google News)', cat:'AI', url:'https://news.google.com/rss/search?q=OpenAI+OR+Anthropic&hl=en-US&gl=US&ceid=US:en'},
+    // Science
+    {name:'NYT Science', cat:'Science', url:'https://rss.nytimes.com/services/xml/rss/nyt/Science.xml'},
+    {name:'BBC Science', cat:'Science', url:'https://feeds.bbci.co.uk/news/science_and_environment/rss.xml'},
+    {name:'Guardian Science', cat:'Science', url:'https://www.theguardian.com/science/rss'},
+    {name:'ScienceDaily', cat:'Science', url:'https://www.sciencedaily.com/rss/all.xml'},
+    {name:'Nature', cat:'Science', url:'https://www.nature.com/nature.rss'},
+    {name:'Ars Science', cat:'Science', url:'https://arstechnica.com/science/feed/'},
+    // Cinema
+    {name:'Guardian Film', cat:'Cinema', url:'https://www.theguardian.com/film/rss'},
+    {name:'NYT Movies', cat:'Cinema', url:'https://rss.nytimes.com/services/xml/rss/nyt/Movies.xml'},
+    {name:'RogerEbert.com', cat:'Cinema', url:'https://www.rogerebert.com/feed'},
+    {name:'The Film Stage', cat:'Cinema', url:'https://thefilmstage.com/feed/'},
+    {name:'Variety (Google News)', cat:'Cinema', url:'https://news.google.com/rss/search?q=site:variety.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'IndieWire (Google News)', cat:'Cinema', url:'https://news.google.com/rss/search?q=site:indiewire.com&hl=en-US&gl=US&ceid=US:en'},
+    // Weather
+    {name:'Mumbai weather (Google News)', cat:'Weather', url:'https://news.google.com/rss/search?q=Mumbai+weather+forecast&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'India monsoon & IMD (Google News)', cat:'Weather', url:'https://news.google.com/rss/search?q=India+weather+IMD+monsoon&hl=en-IN&gl=IN&ceid=IN:en'},
+    {name:'Guardian Climate crisis', cat:'Weather', url:'https://www.theguardian.com/environment/climate-crisis/rss'},
+    {name:'Extreme weather (Google News)', cat:'Weather', url:'https://news.google.com/rss/search?q=extreme+weather+OR+storm&hl=en-US&gl=US&ceid=US:en'},
+    // Travel
+    {name:'Guardian Travel', cat:'Travel', url:'https://www.theguardian.com/travel/rss'},
+    {name:'NYT Travel', cat:'Travel', url:'https://rss.nytimes.com/services/xml/rss/nyt/Travel.xml'},
+    {name:'Atlas Obscura', cat:'Travel', url:'https://www.atlasobscura.com/feeds/latest'},
+    {name:'Nomadic Matt', cat:'Travel', url:'https://www.nomadicmatt.com/travel-blog/feed/'},
+    {name:'The Points Guy', cat:'Travel', url:'https://thepointsguy.com/feed/'},
+    {name:'Lonely Planet (Google News)', cat:'Travel', url:'https://news.google.com/rss/search?q=site:lonelyplanet.com&hl=en-US&gl=US&ceid=US:en'},
+    // Economics
+    {name:'Guardian Economics', cat:'Economics', url:'https://www.theguardian.com/business/economics/rss'},
+    {name:'NYT Economy', cat:'Economics', url:'https://rss.nytimes.com/services/xml/rss/nyt/Economy.xml'},
+    {name:'Bloomberg Economics', cat:'Economics', url:'https://feeds.bloomberg.com/economics/news.rss'},
+    {name:'Marginal Revolution', cat:'Economics', url:'https://marginalrevolution.com/feed'},
+    {name:'Calculated Risk', cat:'Economics', url:'https://www.calculatedriskblog.com/feeds/posts/default'},
+    {name:'Project Syndicate', cat:'Economics', url:'https://www.project-syndicate.org/rss'},
+    {name:'The Economist (Google News)', cat:'Economics', url:'https://news.google.com/rss/search?q=site:economist.com&hl=en-US&gl=US&ceid=US:en'},
+    // Pop Culture
+    {name:'Guardian Culture', cat:'Pop Culture', url:'https://www.theguardian.com/culture/rss'},
+    {name:'AV Club', cat:'Pop Culture', url:'https://www.avclub.com/rss'},
+    {name:'Vulture (Google News)', cat:'Pop Culture', url:'https://news.google.com/rss/search?q=site:vulture.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'Rolling Stone (Google News)', cat:'Pop Culture', url:'https://news.google.com/rss/search?q=site:rollingstone.com&hl=en-US&gl=US&ceid=US:en'},
+    {name:'Hollywood Reporter (Google News)', cat:'Pop Culture', url:'https://news.google.com/rss/search?q=site:hollywoodreporter.com&hl=en-US&gl=US&ceid=US:en'}
   ],
   topics:[
     {name:'Football', keywords:['football','transfer','league','club','uefa','fifa','goal','signing','premier']},
-    {name:'Arts', keywords:['film','movie','music','album','art','cinema','gallery','exhibition','director']},
+    {name:'Arts', keywords:['film','movie','music','album','art','cinema','gallery','exhibition','director','book']},
     {name:'World', keywords:['world','global','international','war','election','summit']},
     {name:'India', keywords:['india','indian','delhi','mumbai','rupee','modi','rbi']},
     {name:'Geopolitics', keywords:['geopolitic','foreign policy','military','defence','defense','sanction','diplomacy','conflict']},
+    {name:'Business', keywords:['business','market','economy','stocks','earnings','trade','inflation','gdp']},
     {name:'Fintech', keywords:['fintech','payment','upi','bank','credit','lending','wallet','bnpl','rupee']},
-    {name:'Tech', keywords:['tech','ai','startup','app','software','product','launch','chip']}
+    {name:'Tech', keywords:['tech','startup','app','software','gadget','chip','device']},
+    {name:'AI', keywords:['ai','artificial intelligence','model','openai','anthropic','llm','machine learning']},
+    {name:'Science', keywords:['science','research','study','space','climate','physics','biology']},
+    {name:'Cinema', keywords:['film','movie','cinema','box office','director','trailer','bollywood','hollywood','festival']},
+    {name:'Weather', keywords:['weather','forecast','monsoon','rain','storm','cyclone','heatwave','temperature']},
+    {name:'Travel', keywords:['travel','tourism','flight','destination','hotel','trip','airline','visa']},
+    {name:'Economics', keywords:['economy','economic','inflation','gdp','recession','interest rate','fiscal','monetary']},
+    {name:'Pop Culture', keywords:['celebrity','pop culture','entertainment','streaming','viral','awards','red carpet']}
   ],
   settings:{ proxy:'https://api.codetabs.com/v1/proxy/?quest=', digestLen:'short', muted:[] },
+  selectedTopics:null,
+  topicsChosen:false,
   articles:{}
 };
 let state = null;
 let filter = { topic:'All', savedOnly:false, unreadOnly:false };
+
+// The topics the user has opted into (all of them until they choose).
+function chosenTopics(){
+  if(state.topicsChosen && Array.isArray(state.selectedTopics) && state.selectedTopics.length)
+    return state.selectedTopics;
+  return state.topics.map(t=>t.name);
+}
+function feedIsActive(f){ return !f.cat || chosenTopics().includes(f.cat); }
 
 let saveTimer=null;
 function persist(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>DB.set('state',state).catch(()=>{}),250); }
@@ -397,7 +509,7 @@ async function tryStrategy(s, feedUrl, feed, timeout){
 async function fetchFeed(feed){
   let lastErr='unreachable';
   for(const s of strategies()){
-    try{ return await tryStrategy(s, feed.url, feed, 12000); }
+    try{ return await tryStrategy(s, feed.url, feed, 15000); }
     catch(e){ lastErr=(e&&e.name==='AbortError')?'timeout':((e&&e.message)||'fail'); }
   }
   throw new Error(lastErr);
@@ -429,21 +541,37 @@ async function runNetTest(){
 }
 
 let refreshing=false;
+async function pullFeed(f){
+  try{
+    const items = await fetchFeed(f);
+    for(const it of items){
+      const prev = state.articles[it.id];
+      state.articles[it.id] = prev ? {...it, read:prev.read, saved:prev.saved, summary:prev.summary} : {...it, read:false, saved:false, summary:''};
+    }
+    return null; // success
+  }catch(e){ return (e&&e.message)||'fail'; }
+}
 async function refresh(){
   if(refreshing || !state.feeds.length) { if(!state.feeds.length) render(); return; }
   refreshing=true;
   const rbtn=document.getElementById('refresh'); rbtn.classList.add('spin');
-  setWire(true, 'pulling '+state.feeds.length+' sources…');
-  const errors=[];
-  await mapLimit(state.feeds, 5, async f=>{
-    try{
-      const items = await fetchFeed(f);
-      for(const it of items){
-        const prev = state.articles[it.id];
-        state.articles[it.id] = prev ? {...it, read:prev.read, saved:prev.saved, summary:prev.summary} : {...it, read:false, saved:false, summary:''};
-      }
-    }catch(e){ errors.push(f.name); }
-  });
+  const active = state.feeds.filter(feedIsActive);
+  setWire(true, 'pulling '+active.length+' sources…');
+
+  const reasons={};
+  const pass1 = await mapLimit(active, 3, pullFeed);
+  let failed = active.filter((f,i)=>{ if(pass1[i]){ reasons[f.name]=pass1[i]; return true; } return false; });
+
+  if(failed.length){
+    setWire(true, 'retrying '+failed.length+' slow source'+(failed.length>1?'s':'')+'…');
+    render();
+    await new Promise(r=>setTimeout(r, 1500));
+    const pass2 = await mapLimit(failed, 3, pullFeed);
+    const still=[];
+    failed.forEach((f,i)=>{ if(pass2[i]){ reasons[f.name]=pass2[i]; still.push(f); } else { delete reasons[f.name]; } });
+    failed = still;
+  }
+
   // prune: keep saved + newest 300
   const arr=Object.values(state.articles).sort((a,b)=>b.ts-a.ts);
   const keep=new Set(arr.filter(a=>a.saved).map(a=>a.id));
@@ -451,9 +579,9 @@ async function refresh(){
   Object.keys(state.articles).forEach(id=>{ if(!keep.has(id)) delete state.articles[id]; });
   state.lastRun=Date.now(); persist();
   rbtn.classList.remove('spin');
-  const ok = state.feeds.length - errors.length;
-  setWire(true, 'live · '+ok+'/'+state.feeds.length+' sources · '+rel(state.lastRun)+' ago');
-  window._feedErrors = errors;
+  const ok = active.length - failed.length;
+  setWire(true, 'live · '+ok+'/'+active.length+' sources · '+rel(state.lastRun)+' ago');
+  window._feedErrors = failed.map(f=>({name:f.name, reason:reasons[f.name]||'fail'}));
   refreshing=false; render();
 }
 
@@ -465,6 +593,8 @@ function setWire(on, text){
 /* ---------- filtering + render ---------- */
 function visibleArticles(){
   let arr=Object.values(state.articles).sort((a,b)=>b.ts-a.ts);
+  const sel=chosenTopics();
+  arr=arr.filter(a=>!a.cat || sel.includes(a.cat)); // only chosen topics
   const muted=(state.settings.muted||[]).map(m=>m.toLowerCase()).filter(Boolean);
   if(muted.length) arr=arr.filter(a=>{ const t=(a.title+' '+a.snip).toLowerCase(); return !muted.some(m=>t.includes(m)); });
   if(filter.topic!=='All'){
@@ -483,7 +613,8 @@ function visibleArticles(){
 
 function renderChips(){
   const c=document.getElementById('chips');
-  const topics=['All',...state.topics.map(t=>t.name)];
+  const topics=['All',...chosenTopics()];
+  if(!topics.includes(filter.topic)) filter.topic='All';
   let html=topics.map(t=>`<button class="chip" data-topic="${esc(t)}" aria-pressed="${filter.topic===t}">${esc(t)}</button>`).join('');
   html+=`<button class="chip tog" data-tog="unread" aria-pressed="${filter.unreadOnly}">Unread</button>`;
   html+=`<button class="chip tog" data-tog="saved" aria-pressed="${filter.savedOnly}">Saved</button>`;
@@ -509,12 +640,18 @@ function render(){
   const warn=envWarning();
   if(warn) head+=`<div class="err" style="color:var(--ink);background:#fdf6e3;border-color:#e9d8a6">${warn}</div>`;
   const errs=window._feedErrors||[];
-  if(errs.length) head+=`<div class="err">could not reach: ${esc(errs.join(', '))} — check proxy or the feed url</div>`;
+  if(errs.length){
+    const lines=errs.map(e=> typeof e==='string' ? esc(e) : esc((e.name||'')+'  —  '+(e.reason||'fail')) ).join('<br>');
+    head+=`<div class="err">could not reach:<br>${lines}</div>`;
+  }
 
   if(!state.feeds.length){
     list.innerHTML=head+`<div class="empty"><h3>No feeds yet</h3><p>Open settings and add an RSS feed to start your desk.</p></div>`; return;
   }
   if(!arr.length){
+    if(!state.topicsChosen){
+      list.innerHTML=head+`<div class="empty"><h3>Welcome to Dispatch</h3><p>Choose the topics you care about to build your feed.</p><button class="btn" id="openTopics" style="margin-top:14px">Choose topics</button></div>`; return;
+    }
     list.innerHTML=head+`<div class="empty"><h3>Nothing here</h3><p>${state.lastRun?'No stories match this filter.':'Pull the refresh button up top to fetch news.'}</p></div>`; return;
   }
   list.innerHTML=head+arr.map(a=>`
@@ -587,6 +724,30 @@ function buildDigest(){
 function openSheet(id){ document.getElementById('scrim').classList.add('show'); document.getElementById(id).classList.add('show'); }
 function closeSheets(){ document.getElementById('scrim').classList.remove('show'); document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show')); }
 
+/* ---------- topic picker ---------- */
+let pickerSel = new Set();
+function renderPicker(){
+  const el=document.getElementById('topicPicker');
+  el.innerHTML=state.topics.map(t=>{
+    const on=pickerSel.has(t.name);
+    return `<button class="chip" data-pick="${esc(t.name)}" aria-pressed="${on}" style="flex:none">${esc(t.name)}</button>`;
+  }).join('');
+}
+function openTopicPicker(){
+  pickerSel=new Set(chosenTopics());
+  renderPicker();
+  openSheet('topicSheet');
+}
+function applyTopicPick(){
+  state.selectedTopics = pickerSel.size ? [...pickerSel] : state.topics.map(t=>t.name);
+  state.topicsChosen = true;
+  persist();
+  closeSheets();
+  filter.topic='All';
+  render();
+  refresh();
+}
+
 /* ---------- settings UI ---------- */
 function fillSettings(){
   const s=state.settings;
@@ -608,10 +769,23 @@ function saveSettingsFromUI(){
   s.muted=document.getElementById('muted').value.split(',').map(x=>x.trim()).filter(Boolean);
   persist(); closeSheets(); render();
 }
+function updateTopicsSummary(){
+  const el=document.getElementById('topicsSummary'); if(!el) return;
+  const sel=chosenTopics();
+  el.textContent = state.topicsChosen
+    ? 'Showing '+sel.length+' of '+state.topics.length+' topics: '+sel.join(', ')
+    : 'Showing all '+state.topics.length+' topics. Tap to pick your favourites.';
+}
 
 /* ---------- events ---------- */
 document.addEventListener('click', async (e)=>{
   const t=e.target;
+  // topic picker
+  const pk=t.closest('[data-pick]'); if(pk){ const n=pk.dataset.pick; if(pickerSel.has(n)) pickerSel.delete(n); else pickerSel.add(n); renderPicker(); return; }
+  if(t.id==='topicAll'){ pickerSel=new Set(state.topics.map(x=>x.name)); renderPicker(); return; }
+  if(t.id==='topicNone'){ pickerSel.clear(); renderPicker(); return; }
+  if(t.id==='topicDone') return applyTopicPick();
+  if(t.id==='openTopics') return openTopicPicker();
   // chips
   const chip=t.closest('[data-topic]'); if(chip){ filter.topic=chip.dataset.topic; render(); return; }
   const tog=t.closest('[data-tog]'); if(tog){ const k=tog.dataset.tog==='saved'?'savedOnly':'unreadOnly'; filter[k]=!filter[k]; render(); return; }
@@ -630,7 +804,7 @@ document.addEventListener('click', async (e)=>{
   }
   // header
   if(t.closest('#refresh')) return refresh();
-  if(t.closest('#openSettings')){ fillSettings(); openSheet('settingsSheet'); return; }
+  if(t.closest('#openSettings')){ fillSettings(); updateTopicsSummary(); openSheet('settingsSheet'); return; }
   if(t.closest('#digestBtn')) return buildDigest();
   if(t.closest('[data-close]')||t.id==='scrim') return closeSheets();
   // settings buttons
@@ -643,7 +817,7 @@ document.addEventListener('click', async (e)=>{
   if(t.id==='saveSettings') return saveSettingsFromUI();
   if(t.id==='clearRead'){ Object.values(state.articles).forEach(a=>a.read=false); persist(); render(); return; }
   if(t.id==='netTest') return runNetTest();
-  if(t.id==='resetAll'){ if(confirm('Reset all feeds, topics, settings and saved stories?')){ state=structuredClone(DEFAULTS); filter={topic:'All',savedOnly:false,unreadOnly:false}; persist(); fillSettings(); render(); } return; }
+  if(t.id==='resetAll'){ if(confirm('Reset all feeds, topics, settings and saved stories?')){ state=structuredClone(DEFAULTS); filter={topic:'All',savedOnly:false,unreadOnly:false}; persist(); closeSheets(); render(); openTopicPicker(); } return; }
 });
 
 /* ---------- boot ---------- */
@@ -653,13 +827,19 @@ async function boot(){
   state = saved || structuredClone(DEFAULTS);
   // backfill any new default keys
   state.settings = {...DEFAULTS.settings, ...state.settings};
+  if(!('topicsChosen' in state)) state.topicsChosen=false;
   render();
   if('serviceWorker' in navigator && location.protocol.startsWith('http')){
     navigator.serviceWorker.register('service-worker.js').catch(()=>{});
   }
-  // auto-pull if stale (>20 min) or never
-  if(!state.lastRun || Date.now()-state.lastRun > 20*6e4) refresh();
-  else setWire(true,'live · '+rel(state.lastRun)+' ago');
+  if(!state.topicsChosen){
+    // First run: let them pick topics before pulling anything.
+    openTopicPicker();
+  } else if(!state.lastRun || Date.now()-state.lastRun > 20*6e4){
+    refresh();
+  } else {
+    setWire(true,'live · '+rel(state.lastRun)+' ago');
+  }
 }
 boot();
 </script>

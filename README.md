@@ -11,9 +11,9 @@ Host on Cloudflare Pages instead and connect it to your GitHub repo.
 1. Put this folder in a GitHub repo (see below).
 2. In the Cloudflare dashboard: Workers & Pages -> Create -> Pages ->
    Connect to Git -> pick the repo.
-3. Framework preset: None. Leave build command empty.
-   Build output directory: `.` (repo root). The included `wrangler.toml`
-   already sets this, so defaults are fine.
+3. Framework preset: None. Build command: `exit 0` (this is what lets the
+   proxy function deploy). Build output directory: `.` (repo root). The
+   included `wrangler.toml` already sets the output dir, so defaults are fine.
 4. Save and Deploy. You get a URL like `https://dispatch-xxx.pages.dev`.
 
 The `functions/proxy.js` file is auto-served at `/proxy`, which is the path the
