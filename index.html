@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Dispatch</title>
+<meta name="theme-color" content="#17181d" />
+<link rel="manifest" href="manifest.webmanifest" />
+<link rel="apple-touch-icon" href="icon-192.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --paper:#f6f4ef; --surface:#ffffff; --ink:#17181d; --ink-soft:#63656e;
+    --line:#e6e2d9; --pine:#2f6f5b; --pine-soft:#e6f0ec; --gold:#b98a2e; --rust:#b8492e;
+    --shadow:0 1px 2px rgba(23,24,29,.04),0 8px 24px rgba(23,24,29,.05);
+    --disp:'Space Grotesk',system-ui,sans-serif;
+    --body:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;
+    --mono:ui-monospace,SFMono-Regular,'SF Mono',Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:var(--paper); color:var(--ink); font-family:var(--body);
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    padding-bottom:env(safe-area-inset-bottom);
+  }
+  button{font-family:inherit; cursor:pointer}
+  :focus-visible{outline:2px solid var(--pine); outline-offset:2px; border-radius:6px}
+
+  /* Header */
+  header{
+    position:sticky; top:0; z-index:20; background:var(--paper);
+    border-bottom:1px solid var(--line);
+    padding:calc(env(safe-area-inset-top) + 14px) 16px 10px;
+  }
+  .bar{display:flex; align-items:center; justify-content:space-between; gap:12px}
+  .brand{font-family:var(--disp); font-weight:700; letter-spacing:.14em; font-size:19px}
+  .brand .dot{color:var(--pine)}
+  .hbtns{display:flex; gap:8px}
+  .icon-btn{
+    width:38px; height:38px; border:1px solid var(--line); background:var(--surface);
+    border-radius:11px; display:grid; place-items:center; color:var(--ink);
+    transition:transform .12s ease, background .12s ease;
+  }
+  .icon-btn:active{transform:scale(.94)}
+  .icon-btn svg{width:18px; height:18px}
+  .icon-btn.spin svg{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  .wire{
+    font-family:var(--mono); font-size:11px; color:var(--ink-soft);
+    margin-top:9px; display:flex; align-items:center; gap:7px; letter-spacing:.02em;
+  }
+  .pulse{width:7px; height:7px; border-radius:50%; background:var(--pine); position:relative; flex:none}
+  .pulse::after{content:''; position:absolute; inset:-4px; border-radius:50%; border:1px solid var(--pine); opacity:.5; animation:ring 2s ease-out infinite}
+  @keyframes ring{0%{transform:scale(.6);opacity:.6}100%{transform:scale(1.6);opacity:0}}
+  .wire.off .pulse{background:var(--ink-soft)}
+  .wire.off .pulse::after{display:none}
+
+  /* Chips */
+  .chips{display:flex; gap:8px; overflow-x:auto; padding:12px 16px; scrollbar-width:none}
+  .chips::-webkit-scrollbar{display:none}
+  .chip{
+    flex:none; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft);
+    padding:7px 14px; border-radius:999px; font-size:13px; font-weight:600; white-space:nowrap;
+    transition:all .12s ease;
+  }
+  .chip[aria-pressed="true"]{background:var(--ink); color:var(--paper); border-color:var(--ink)}
+  .chip.tog[aria-pressed="true"]{background:var(--pine-soft); color:var(--pine); border-color:var(--pine)}
+
+  /* List */
+  main{padding:4px 16px 120px; max-width:720px; margin:0 auto}
+  .art{
+    background:var(--surface); border:1px solid var(--line); border-radius:16px;
+    padding:15px 16px; margin-bottom:12px; box-shadow:var(--shadow);
+    transition:opacity .2s ease;
+  }
+  .art.read{opacity:.52}
+  .art .meta{font-family:var(--mono); font-size:11px; color:var(--ink-soft); display:flex; gap:8px; align-items:center; margin-bottom:7px}
+  .art .src{color:var(--pine); font-weight:600; text-transform:uppercase; letter-spacing:.04em}
+  .art .time{margin-left:auto}
+  .art h2{font-size:16.5px; line-height:1.32; margin:0 0 6px; font-weight:600; letter-spacing:-.01em}
+  .art h2 a{color:var(--ink); text-decoration:none}
+  .art h2 a:active{color:var(--pine)}
+  .art .snip{font-size:13.5px; color:var(--ink-soft); margin:0 0 12px}
+  .actions{display:flex; gap:6px; align-items:center}
+  .act{
+    border:1px solid var(--line); background:var(--paper); color:var(--ink-soft);
+    font-size:12px; font-weight:600; padding:7px 11px; border-radius:9px; display:inline-flex; gap:5px; align-items:center;
+    transition:all .12s ease;
+  }
+  .act:active{transform:scale(.95)}
+  .act svg{width:14px; height:14px}
+  .act.ai{color:var(--pine); border-color:var(--pine-soft); background:var(--pine-soft)}
+  .act.on{color:var(--gold); border-color:var(--gold); background:#faf3e2}
+  .act.grow{margin-left:auto}
+  .summary{
+    margin-top:12px; padding:12px 13px; border-left:3px solid var(--pine); background:var(--pine-soft);
+    border-radius:0 10px 10px 0; font-size:13.5px; color:#1d3a31; white-space:pre-wrap;
+  }
+  .summary .lbl{font-family:var(--mono); font-size:10px; letter-spacing:.08em; text-transform:uppercase; color:var(--pine); display:block; margin-bottom:5px}
+
+  .empty{text-align:center; color:var(--ink-soft); padding:60px 24px}
+  .empty h3{font-family:var(--disp); color:var(--ink); margin:0 0 6px}
+  .err{font-size:12px; color:var(--rust); background:#fbeee9; border:1px solid #f0d4cb; border-radius:10px; padding:9px 12px; margin-bottom:12px; font-family:var(--mono)}
+
+  /* Digest FAB */
+  .fab{
+    position:fixed; right:16px; bottom:calc(20px + env(safe-area-inset-bottom)); z-index:25;
+    background:var(--ink); color:var(--paper); border:none; border-radius:14px;
+    padding:14px 18px; font-weight:700; font-family:var(--disp); letter-spacing:.03em; font-size:14px;
+    display:flex; gap:8px; align-items:center; box-shadow:0 10px 30px rgba(23,24,29,.25);
+  }
+  .fab svg{width:17px; height:17px}
+  .fab:active{transform:scale(.96)}
+
+  /* Sheet */
+  .scrim{position:fixed; inset:0; background:rgba(23,24,29,.45); z-index:40; opacity:0; pointer-events:none; transition:opacity .2s}
+  .scrim.show{opacity:1; pointer-events:auto}
+  .sheet{
+    position:fixed; left:0; right:0; bottom:0; z-index:41; background:var(--paper);
+    border-radius:20px 20px 0 0; max-height:88vh; overflow-y:auto; transform:translateY(100%);
+    transition:transform .28s cubic-bezier(.2,.8,.2,1); padding-bottom:calc(24px + env(safe-area-inset-bottom));
+  }
+  .sheet.show{transform:translateY(0)}
+  .grab{width:38px; height:4px; background:var(--line); border-radius:2px; margin:10px auto 4px}
+  .sheet-h{display:flex; align-items:center; justify-content:space-between; padding:6px 18px 12px; position:sticky; top:0; background:var(--paper); z-index:2}
+  .sheet-h h2{font-family:var(--disp); font-size:18px; margin:0}
+  .sec{padding:6px 18px 18px}
+  .sec h3{font-family:var(--mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-soft); margin:16px 0 9px}
+  label.f{display:block; font-size:12px; color:var(--ink-soft); margin:10px 0 5px; font-weight:600}
+  input.f, select.f, textarea.f{
+    width:100%; border:1px solid var(--line); background:var(--surface); border-radius:10px;
+    padding:11px 12px; font-size:14px; font-family:var(--body); color:var(--ink);
+  }
+  textarea.f{resize:vertical; min-height:60px; font-family:var(--mono); font-size:12.5px}
+  .row{display:flex; gap:8px; align-items:center}
+  .row .f{flex:1}
+  .list-item{display:flex; align-items:center; gap:10px; padding:10px 0; border-bottom:1px solid var(--line)}
+  .list-item .nm{font-weight:600; font-size:14px}
+  .list-item .u{font-family:var(--mono); font-size:11px; color:var(--ink-soft); word-break:break-all}
+  .del{margin-left:auto; border:none; background:none; color:var(--rust); font-size:20px; line-height:1; padding:4px 8px; flex:none}
+  .btn{
+    border:1px solid var(--ink); background:var(--ink); color:var(--paper); border-radius:11px;
+    padding:11px 15px; font-weight:700; font-size:14px; font-family:var(--body);
+  }
+  .btn.ghost{background:transparent; color:var(--ink)}
+  .btn.danger{border-color:#e2c3ba; background:transparent; color:var(--rust)}
+  .btn.full{width:100%; margin-top:8px}
+  .hint{font-size:11.5px; color:var(--ink-soft); margin-top:6px; line-height:1.5}
+  .tag{display:inline-flex; gap:5px; align-items:center; background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:5px 9px; font-size:12px; margin:0 6px 6px 0}
+  .tag button{border:none; background:none; color:var(--ink-soft); font-size:14px; line-height:1; padding:0}
+  @media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <div class="brand">DISPATCH<span class="dot">.</span></div>
+    <div class="hbtns">
+      <button class="icon-btn" id="refresh" aria-label="Refresh feeds" title="Refresh">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><polyline points="21 3 21 9 15 9"/></svg>
+      </button>
+      <button class="icon-btn" id="openSettings" aria-label="Settings" title="Settings">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
+  </div>
+  <div class="wire off" id="wire"><span class="pulse"></span><span id="wireText">idle · no feeds pulled yet</span></div>
+</header>
+
+<div class="chips" id="chips"></div>
+
+<main id="list"></main>
+
+<button class="fab" id="digestBtn">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+  Digest
+</button>
+
+<div class="scrim" id="scrim"></div>
+
+<!-- Settings sheet -->
+<div class="sheet" id="settingsSheet" role="dialog" aria-label="Settings">
+  <div class="grab"></div>
+  <div class="sheet-h"><h2>Settings</h2><button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+
+  <div class="sec">
+    <h3>Feeds</h3>
+    <div id="feedList"></div>
+    <div class="row" style="margin-top:10px">
+      <input class="f" id="fName" placeholder="Name (e.g. ESPN FC)" />
+      <input class="f" id="fCat" placeholder="Topic" style="max-width:120px" />
+    </div>
+    <div class="row" style="margin-top:8px">
+      <input class="f" id="fUrl" placeholder="RSS URL" />
+      <button class="btn" id="addFeed">Add</button>
+    </div>
+    <p class="hint">Tag a feed with a Topic so it shows under that filter. Feeds route through the proxy below. If a site blocks datacenter traffic (some paywalled or bot-protected ones do), swap in a Google News feed: <span style="font-family:var(--mono);font-size:11px">news.google.com/rss/search?q=site:example.com</span></p>
+
+    <h3>Topics</h3>
+    <div id="topicList"></div>
+    <div class="row" style="margin-top:10px"><input class="f" id="tName" placeholder="Topic (e.g. Football)" /></div>
+    <div class="row" style="margin-top:8px"><input class="f" id="tKw" placeholder="Keywords, comma separated" /><button class="btn" id="addTopic">Add</button></div>
+
+    <h3>Mute</h3>
+    <label class="f" for="muted">Hide anything containing these words</label>
+    <textarea class="f" id="muted" placeholder="comma, separated, terms"></textarea>
+
+    <h3>Summaries</h3>
+    <label class="f" for="digestLen">Brief length</label>
+    <select class="f" id="digestLen"><option value="short">Short — 3 per topic</option><option value="medium">Medium — 5 per topic</option></select>
+    <p class="hint">Summaries run fully on-device with a built-in summariser. No key, no account, nothing leaves this phone, so you can share the app as-is. It picks the most informative sentence from a story, so quality tracks how much text the feed includes.</p>
+
+    <h3>Network</h3>
+    <label class="f" for="proxy">Primary CORS proxy</label>
+    <input class="f" id="proxy" placeholder="https://api.codetabs.com/v1/proxy/?quest=" />
+    <p class="hint">Most reliable: run the app with <span style="font-family:var(--mono);font-size:11px">python3 serve.py</span> (included). That fetches feeds from your own machine, with no CORS, no public proxies, and no rate limits, and the network test below will show <span style="font-family:var(--mono);font-size:11px">local ✓</span>. The proxy field is only used when you are not running that server: it is tried first, then the app falls back through other public proxies.</p>
+    <button class="btn ghost full" id="netTest" style="margin-top:8px">Run network test</button>
+    <div id="netTestOut"></div>
+
+    <h3>Data</h3>
+    <button class="btn ghost full" id="clearRead">Clear read history</button>
+    <button class="btn danger full" id="resetAll">Reset everything</button>
+
+    <button class="btn full" id="saveSettings" style="margin-top:18px">Save settings</button>
+  </div>
+</div>
+
+<!-- Digest sheet -->
+<div class="sheet" id="digestSheet" role="dialog" aria-label="Digest">
+  <div class="grab"></div>
+  <div class="sheet-h"><h2>Digest</h2><button class="icon-btn" data-close aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
+  <div class="sec" id="digestBody"></div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- kv store: IndexedDB, with in-memory fallback for sandboxes ---------- */
+const DB = {
+  _db:null, _mem:null, memoryOnly:false,
+  _fallback(){ this.memoryOnly=true; this._mem=this._mem||new Map(); },
+  open(){
+    return new Promise((res)=>{
+      try{
+        if(!('indexedDB' in window) || !window.indexedDB){ this._fallback(); return res(); }
+        const r=indexedDB.open('dispatch',1);
+        r.onupgradeneeded=()=>{ try{ r.result.createObjectStore('kv'); }catch(e){} };
+        r.onsuccess=()=>{ this._db=r.result; res(); };
+        r.onerror=()=>{ this._fallback(); res(); };
+        r.onblocked=()=>{ this._fallback(); res(); };
+      }catch(e){ this._fallback(); res(); }
+    });
+  },
+  get(k){
+    if(this.memoryOnly) return Promise.resolve(this._mem.get(k));
+    return new Promise((res)=>{ try{ const t=this._db.transaction('kv').objectStore('kv').get(k);
+      t.onsuccess=()=>res(t.result); t.onerror=()=>res(undefined);
+    }catch(e){ res(undefined); } });
+  },
+  set(k,v){
+    if(this.memoryOnly){ this._mem.set(k,v); return Promise.resolve(); }
+    return new Promise((res)=>{ try{ const t=this._db.transaction('kv','readwrite').objectStore('kv').put(v,k);
+      t.onsuccess=()=>res(); t.onerror=()=>res();
+    }catch(e){ res(); } });
+  }
+};
+
+/* ---------- state ---------- */
+const DEFAULTS = {
+  feeds:[
+    // Football
+    {name:'BBC Football', cat:'Football', url:'https://feeds.bbci.co.uk/sport/football/rss.xml'},
+    {name:'Guardian Football', cat:'Football', url:'https://www.theguardian.com/football/rss'},
+    {name:'ESPN Soccer', cat:'Football', url:'http://www.espn.com/espn/rss/soccer/news'},
+    // Arts (art / music / cinema)
+    {name:'Hyperallergic', cat:'Arts', url:'https://hyperallergic.com/feed'},
+    {name:'Guardian Music', cat:'Arts', url:'https://www.theguardian.com/music/rss'},
+    {name:'Guardian Film', cat:'Arts', url:'https://www.theguardian.com/film/rss'},
+    // World
+    {name:'Al Jazeera', cat:'World', url:'https://www.aljazeera.com/xml/rss/all.xml'},
+    {name:'BBC World', cat:'World', url:'https://feeds.bbci.co.uk/news/world/rss.xml'},
+    {name:'NYT World', cat:'World', url:'https://rss.nytimes.com/services/xml/rss/nyt/World.xml'},
+    // India
+    {name:'Scroll.in', cat:'India', url:'https://feeds.feedburner.com/ScrollinArticles.rss'},
+    {name:'Times of India', cat:'India', url:'https://timesofindia.indiatimes.com/rssfeedstopstories.cms'},
+    {name:'The Hindu (via Google News)', cat:'India', url:'https://news.google.com/rss/search?q=site:thehindu.com&hl=en-IN&gl=IN&ceid=IN:en'},
+    // Geopolitics
+    {name:'War on the Rocks', cat:'Geopolitics', url:'https://warontherocks.com/feed'},
+    {name:'Crisis Group', cat:'Geopolitics', url:'https://www.crisisgroup.org/rss'},
+    {name:'The Diplomat (via Google News)', cat:'Geopolitics', url:'https://news.google.com/rss/search?q=site:thediplomat.com&hl=en-IN&gl=IN&ceid=IN:en'},
+    // Fintech / business
+    {name:'BBC Business', cat:'Fintech', url:'https://feeds.bbci.co.uk/news/business/rss.xml'},
+    {name:'Fintech Takes', cat:'Fintech', url:'https://fintechtakes.com/feed'},
+    {name:'India Fintech (via Google News)', cat:'Fintech', url:'https://news.google.com/rss/search?q=india+fintech+OR+UPI+OR+RBI+when:7d&hl=en-IN&gl=IN&ceid=IN:en'},
+    // Tech / product
+    {name:'The Verge', cat:'Tech', url:'https://www.theverge.com/rss/index.xml'},
+    {name:'TechCrunch', cat:'Tech', url:'https://techcrunch.com/feed/'},
+    {name:'Wired', cat:'Tech', url:'https://www.wired.com/feed/rss'},
+    {name:'Hacker News (100+)', cat:'Tech', url:'https://hnrss.org/frontpage?points=100'}
+  ],
+  topics:[
+    {name:'Football', keywords:['football','transfer','league','club','uefa','fifa','goal','signing','premier']},
+    {name:'Arts', keywords:['film','movie','music','album','art','cinema','gallery','exhibition','director']},
+    {name:'World', keywords:['world','global','international','war','election','summit']},
+    {name:'India', keywords:['india','indian','delhi','mumbai','rupee','modi','rbi']},
+    {name:'Geopolitics', keywords:['geopolitic','foreign policy','military','defence','defense','sanction','diplomacy','conflict']},
+    {name:'Fintech', keywords:['fintech','payment','upi','bank','credit','lending','wallet','bnpl','rupee']},
+    {name:'Tech', keywords:['tech','ai','startup','app','software','product','launch','chip']}
+  ],
+  settings:{ proxy:'https://api.codetabs.com/v1/proxy/?quest=', digestLen:'short', muted:[] },
+  articles:{}
+};
+let state = null;
+let filter = { topic:'All', savedOnly:false, unreadOnly:false };
+
+let saveTimer=null;
+function persist(){ clearTimeout(saveTimer); saveTimer=setTimeout(()=>DB.set('state',state).catch(()=>{}),250); }
+
+/* ---------- helpers ---------- */
+const esc=(s='')=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+function hash(s){ let h=0; for(let i=0;i<s.length;i++){h=(h<<5)-h+s.charCodeAt(i); h|=0;} return 'a'+(h>>>0).toString(36); }
+function stripHtml(s=''){ const d=document.createElement('div'); d.innerHTML=s; return (d.textContent||'').replace(/\s+/g,' ').trim(); }
+function rel(ts){ if(!ts) return '—'; const m=Math.max(0,(Date.now()-ts)/6e4);
+  if(m<1) return 'now'; if(m<60) return Math.floor(m)+'m'; const h=m/60; if(h<24) return Math.floor(h)+'h';
+  const d=h/24; if(d<7) return Math.floor(d)+'d'; return Math.floor(d/7)+'w'; }
+
+/* ---------- feed fetching ---------- */
+function pick(el, names){ for(const n of names){ const t=el.getElementsByTagName(n)[0]; if(t&&t.textContent) return t.textContent; } return ''; }
+
+// Strategies tried in order until one yields a valid feed.
+// enc: whether the target URL gets encodeURIComponent'd. kind: xml|rss2json.
+function strategies(){
+  const list=[
+    {name:'local',    kind:'xml',      make:u=>'/proxy?url='+encodeURIComponent(u)},
+    {name:'direct',   kind:'xml',      make:u=>u},
+    {name:'rss2json', kind:'rss2json', make:u=>'https://api.rss2json.com/v1/api.json?rss_url='+encodeURIComponent(u)}
+  ];
+  const primary=(state.settings.proxy||'').trim();
+  const proxies=[
+    primary,
+    'https://api.codetabs.com/v1/proxy/?quest=',
+    'https://api.allorigins.win/raw?url=',
+    'https://corsproxy.io/?url='
+  ].filter(Boolean).filter((p,i,a)=>a.indexOf(p)===i);
+  for(const p of proxies) list.push({name:p.replace(/^https:\/\//,'').split('/')[0], kind:'xml', make:u=>p+encodeURIComponent(u)});
+  return list;
+}
+function fetchWithTimeout(url, ms){
+  const ctl=new AbortController(); const id=setTimeout(()=>ctl.abort(), ms);
+  return fetch(url,{cache:'no-store',signal:ctl.signal}).finally(()=>clearTimeout(id));
+}
+function mkItem(feed, title, link, dateStr, snip){
+  const ts=dateStr?Date.parse(dateStr):Date.now();
+  return { id:hash((link||title).trim()), feed:feed.name, cat:feed.cat||'',
+    title:title||'(untitled)', link:(link||'').trim(),
+    ts:isNaN(ts)?Date.now():ts, snip:(snip||'').slice(0,1200) };
+}
+function parseFeedXml(txt, feed){
+  const doc=new DOMParser().parseFromString(txt,'application/xml');
+  if(doc.querySelector('parsererror')) return null;
+  let nodes=[...doc.querySelectorAll('item')];
+  const atom=nodes.length===0;
+  if(atom) nodes=[...doc.querySelectorAll('entry')];
+  if(!nodes.length) return null;
+  const out=[];
+  for(const n of nodes.slice(0,25)){
+    let link='';
+    if(atom){ const l=n.querySelector('link'); link=l?(l.getAttribute('href')||l.textContent):''; }
+    else { link=pick(n,['link']); }
+    out.push(mkItem(feed, stripHtml(pick(n,['title'])), link,
+      pick(n,['pubDate','published','updated','date']),
+      stripHtml(pick(n,['content:encoded','encoded','content','description','summary','media:description']))));
+  }
+  return out;
+}
+function parseRss2Json(txt, feed){
+  let j; try{ j=JSON.parse(txt); }catch{ return null; }
+  if(!j || j.status!=='ok' || !Array.isArray(j.items) || !j.items.length) return null;
+  return j.items.slice(0,25).map(it=>mkItem(feed, stripHtml(it.title||''), it.link||'',
+    it.pubDate||'', stripHtml(it.content||it.description||'')));
+}
+
+async function tryStrategy(s, feedUrl, feed, timeout){
+  const res=await fetchWithTimeout(s.make(feedUrl), timeout);
+  if(!res.ok) throw new Error('http '+res.status);
+  const txt=await res.text();
+  if(!txt||txt.length<40) throw new Error('empty');
+  const items = s.kind==='rss2json' ? parseRss2Json(txt, feed) : parseFeedXml(txt, feed);
+  if(!items) throw new Error('not a feed');
+  return items;
+}
+
+async function fetchFeed(feed){
+  let lastErr='unreachable';
+  for(const s of strategies()){
+    try{ return await tryStrategy(s, feed.url, feed, 12000); }
+    catch(e){ lastErr=(e&&e.name==='AbortError')?'timeout':((e&&e.message)||'fail'); }
+  }
+  throw new Error(lastErr);
+}
+
+// Small concurrency limiter so 22 feeds don't burst-hit rate limits.
+async function mapLimit(items, limit, fn){
+  const ret=[]; let i=0;
+  const workers=Array.from({length:Math.min(limit,items.length)},async()=>{
+    while(i<items.length){ const idx=i++; ret[idx]=await fn(items[idx]); }
+  });
+  await Promise.all(workers); return ret;
+}
+
+// Network diagnostic: tests every strategy against one known-good feed.
+async function runNetTest(){
+  const out=document.getElementById('netTestOut');
+  out.innerHTML='<p class="hint">Testing each route… (up to ~30s)</p>';
+  const probe={name:'probe', cat:'', url:'https://feeds.bbci.co.uk/news/world/rss.xml'};
+  const rows=[];
+  if(location.protocol==='file:') rows.push('⚠ Running from file:// — serve via localhost instead (python -m http.server)');
+  if(!navigator.onLine) rows.push('⚠ Browser reports OFFLINE');
+  for(const s of strategies()){
+    try{ const items=await tryStrategy(s, probe.url, probe, 8000); rows.push('✓ '+s.name+' — OK ('+items.length+' items)'); }
+    catch(e){ rows.push('✗ '+s.name+' — '+((e&&e.name==='AbortError')?'timeout':(e&&e.message)||'fail')); }
+  }
+  out.innerHTML='<div class="err" style="color:var(--ink);background:var(--surface);border-color:var(--line)">'+rows.map(esc).join('<br>')+'</div>'+
+    '<p class="hint">If everything fails: your network is blocking these services (some ISPs and office networks do), or you are offline. If only some fail, the app will use the working ones automatically.</p>';
+}
+
+let refreshing=false;
+async function refresh(){
+  if(refreshing || !state.feeds.length) { if(!state.feeds.length) render(); return; }
+  refreshing=true;
+  const rbtn=document.getElementById('refresh'); rbtn.classList.add('spin');
+  setWire(true, 'pulling '+state.feeds.length+' sources…');
+  const errors=[];
+  await mapLimit(state.feeds, 5, async f=>{
+    try{
+      const items = await fetchFeed(f);
+      for(const it of items){
+        const prev = state.articles[it.id];
+        state.articles[it.id] = prev ? {...it, read:prev.read, saved:prev.saved, summary:prev.summary} : {...it, read:false, saved:false, summary:''};
+      }
+    }catch(e){ errors.push(f.name); }
+  });
+  // prune: keep saved + newest 300
+  const arr=Object.values(state.articles).sort((a,b)=>b.ts-a.ts);
+  const keep=new Set(arr.filter(a=>a.saved).map(a=>a.id));
+  arr.slice(0,300).forEach(a=>keep.add(a.id));
+  Object.keys(state.articles).forEach(id=>{ if(!keep.has(id)) delete state.articles[id]; });
+  state.lastRun=Date.now(); persist();
+  rbtn.classList.remove('spin');
+  const ok = state.feeds.length - errors.length;
+  setWire(true, 'live · '+ok+'/'+state.feeds.length+' sources · '+rel(state.lastRun)+' ago');
+  window._feedErrors = errors;
+  refreshing=false; render();
+}
+
+function setWire(on, text){
+  const w=document.getElementById('wire'); w.classList.toggle('off',!on);
+  document.getElementById('wireText').textContent=text;
+}
+
+/* ---------- filtering + render ---------- */
+function visibleArticles(){
+  let arr=Object.values(state.articles).sort((a,b)=>b.ts-a.ts);
+  const muted=(state.settings.muted||[]).map(m=>m.toLowerCase()).filter(Boolean);
+  if(muted.length) arr=arr.filter(a=>{ const t=(a.title+' '+a.snip).toLowerCase(); return !muted.some(m=>t.includes(m)); });
+  if(filter.topic!=='All'){
+    const tp=state.topics.find(t=>t.name===filter.topic);
+    const kw=(tp?tp.keywords:[]).map(k=>k.toLowerCase().trim()).filter(Boolean);
+    arr=arr.filter(a=>{
+      if(a.cat===filter.topic) return true; // matched by source category
+      const t=(a.title+' '+a.snip).toLowerCase();
+      return kw.some(k=>t.includes(k));
+    });
+  }
+  if(filter.savedOnly) arr=arr.filter(a=>a.saved);
+  if(filter.unreadOnly) arr=arr.filter(a=>!a.read);
+  return arr;
+}
+
+function renderChips(){
+  const c=document.getElementById('chips');
+  const topics=['All',...state.topics.map(t=>t.name)];
+  let html=topics.map(t=>`<button class="chip" data-topic="${esc(t)}" aria-pressed="${filter.topic===t}">${esc(t)}</button>`).join('');
+  html+=`<button class="chip tog" data-tog="unread" aria-pressed="${filter.unreadOnly}">Unread</button>`;
+  html+=`<button class="chip tog" data-tog="saved" aria-pressed="${filter.savedOnly}">Saved</button>`;
+  c.innerHTML=html;
+}
+
+function envWarning(){
+  const framed = (()=>{ try{ return window.top!==window.self; }catch(e){ return true; } })();
+  if(DB.memoryOnly && framed)
+    return "This looks like a preview sandbox, which blocks storage and network. Dispatch can't run here. Open it in a real browser tab: run <b>python3 serve.py</b> and go to <b>http://localhost:8000</b>.";
+  if(DB.memoryOnly)
+    return "Storage is unavailable here, so nothing will be saved and feeds may be blocked. If this is a private window or preview, open the app in a normal browser tab via <b>python3 serve.py</b>.";
+  if(location.protocol==='file:')
+    return "Opened as a file, so the feed proxy and saving are off. Serve it instead: <b>python3 serve.py</b>, then open <b>http://localhost:8000</b>.";
+  return '';
+}
+
+function render(){
+  renderChips();
+  const list=document.getElementById('list');
+  const arr=visibleArticles();
+  let head='';
+  const warn=envWarning();
+  if(warn) head+=`<div class="err" style="color:var(--ink);background:#fdf6e3;border-color:#e9d8a6">${warn}</div>`;
+  const errs=window._feedErrors||[];
+  if(errs.length) head+=`<div class="err">could not reach: ${esc(errs.join(', '))} — check proxy or the feed url</div>`;
+
+  if(!state.feeds.length){
+    list.innerHTML=head+`<div class="empty"><h3>No feeds yet</h3><p>Open settings and add an RSS feed to start your desk.</p></div>`; return;
+  }
+  if(!arr.length){
+    list.innerHTML=head+`<div class="empty"><h3>Nothing here</h3><p>${state.lastRun?'No stories match this filter.':'Pull the refresh button up top to fetch news.'}</p></div>`; return;
+  }
+  list.innerHTML=head+arr.map(a=>`
+    <article class="art ${a.read?'read':''}" data-id="${a.id}">
+      <div class="meta"><span class="src">${esc(a.feed)}</span><span class="time">${rel(a.ts)} ago</span></div>
+      <h2><a href="${esc(a.link)}" target="_blank" rel="noopener" data-open>${esc(a.title)}</a></h2>
+      ${a.snip?`<p class="snip">${esc(a.snip.slice(0,220))}${a.snip.length>220?'…':''}</p>`:''}
+      <div class="actions">
+        <button class="act ai" data-act="sum">✦ Summarise</button>
+        <button class="act ${a.saved?'on':''}" data-act="save">${a.saved?'★ Saved':'☆ Save'}</button>
+        <button class="act grow" data-act="read">${a.read?'Mark unread':'Mark read'}</button>
+      </div>
+      ${a.summary?`<div class="summary"><span class="lbl">Summary</span>${esc(a.summary)}</div>`:''}
+    </article>`).join('');
+}
+
+/* ---------- local summariser (no key, no network, on-device) ---------- */
+const STOP=new Set(('the a an and or but of to in on for with at by from as is are was were be been being it its this that these those he she they we you i me my his her their our your not no do does did has have had will would can could should shall may might must about into over under after before then than so such more most many much other some any all each per via amid new said say says has'.split(' ')));
+
+function splitSentences(text){
+  return (text.replace(/\s+/g,' ').match(/[^.!?]+[.!?]+|[^.!?]+$/g)||[text]).map(s=>s.trim()).filter(Boolean);
+}
+function summariseText(text,k){
+  text=(text||'').trim(); if(!text) return '';
+  const sents=splitSentences(text).filter(s=>s.length>18);
+  if(sents.length<=k) return sents.join(' ')||text;
+  const freq={};
+  for(const w of (text.toLowerCase().match(/[a-z][a-z'-]{2,}/g)||[])){ if(!STOP.has(w)) freq[w]=(freq[w]||0)+1; }
+  const scored=sents.map((s,i)=>{
+    const ws=s.toLowerCase().match(/[a-z][a-z'-]{2,}/g)||[];
+    let sc=0; for(const w of ws) sc+=freq[w]||0;
+    return {i,s,sc:sc/Math.sqrt(ws.length||1)};
+  });
+  const top=scored.slice().sort((a,b)=>b.sc-a.sc).slice(0,k).sort((a,b)=>a.i-b.i);
+  return top.map(t=>t.s).join(' ');
+}
+
+function summarise(id){
+  const a=state.articles[id]; if(!a) return;
+  a.summary = summariseText(a.snip,2) || a.title;
+  persist(); render();
+}
+
+function buildDigest(){
+  const body=document.getElementById('digestBody');
+  openSheet('digestSheet');
+  const arr=visibleArticles().filter(a=>!a.read).slice(0,24);
+  if(!arr.length){ body.innerHTML='<p class="hint">No unread stories in this filter to digest.</p>'; return; }
+  const perGroup = state.settings.digestLen==='medium'?5:3;
+  const groups={};
+  for(const a of arr){
+    let g=a.cat||'';
+    if(!g){ const t=(a.title+' '+a.snip).toLowerCase();
+      for(const tp of state.topics){ if(tp.keywords.some(k=>t.includes(k.trim().toLowerCase()))){ g=tp.name; break; } } }
+    if(!g) g='Other';
+    (groups[g]=groups[g]||[]).push(a);
+  }
+  const order=[...state.topics.map(t=>t.name),'Other'];
+  const lines=[];
+  for(const g of order){ const items=groups[g]; if(!items) continue;
+    lines.push('▸ '+g.toUpperCase());
+    items.slice(0,perGroup).forEach(a=>lines.push('  – '+a.title));
+    lines.push('');
+  }
+  const brief=lines.join('\n').trim();
+  body.innerHTML=`<div class="summary" style="border-left-color:var(--ink)"><span class="lbl" style="color:var(--ink)">${esc(filter.topic)} brief · ${arr.length} stories</span>${esc(brief)}</div>`;
+}
+
+/* ---------- sheets ---------- */
+function openSheet(id){ document.getElementById('scrim').classList.add('show'); document.getElementById(id).classList.add('show'); }
+function closeSheets(){ document.getElementById('scrim').classList.remove('show'); document.querySelectorAll('.sheet').forEach(s=>s.classList.remove('show')); }
+
+/* ---------- settings UI ---------- */
+function fillSettings(){
+  const s=state.settings;
+  document.getElementById('digestLen').value=s.digestLen||'short';
+  document.getElementById('proxy').value=s.proxy||'';
+  document.getElementById('muted').value=(s.muted||[]).join(', ');
+  document.getElementById('feedList').innerHTML=state.feeds.map((f,i)=>`
+    <div class="list-item"><div><div class="nm">${esc(f.name)}${f.cat?` <span style="font-family:var(--mono);font-size:10px;color:var(--pine)">${esc(f.cat)}</span>`:''}</div><div class="u">${esc(f.url)}</div></div>
+    <button class="del" data-delfeed="${i}" aria-label="Remove feed">×</button></div>`).join('')||'<p class="hint">No feeds.</p>';
+  document.getElementById('topicList').innerHTML=state.topics.map((t,i)=>`
+    <div class="list-item"><div><div class="nm">${esc(t.name)}</div><div class="u">${esc(t.keywords.join(', '))}</div></div>
+    <button class="del" data-deltopic="${i}" aria-label="Remove topic">×</button></div>`).join('')||'<p class="hint">No topics.</p>';
+}
+
+function saveSettingsFromUI(){
+  const s=state.settings;
+  s.digestLen=document.getElementById('digestLen').value;
+  s.proxy=document.getElementById('proxy').value.trim();
+  s.muted=document.getElementById('muted').value.split(',').map(x=>x.trim()).filter(Boolean);
+  persist(); closeSheets(); render();
+}
+
+/* ---------- events ---------- */
+document.addEventListener('click', async (e)=>{
+  const t=e.target;
+  // chips
+  const chip=t.closest('[data-topic]'); if(chip){ filter.topic=chip.dataset.topic; render(); return; }
+  const tog=t.closest('[data-tog]'); if(tog){ const k=tog.dataset.tog==='saved'?'savedOnly':'unreadOnly'; filter[k]=!filter[k]; render(); return; }
+  // article actions
+  const art=t.closest('.art');
+  if(art){
+    const id=art.dataset.id;
+    if(t.closest('[data-open]')){ const a=state.articles[id]; if(a&&!a.read){a.read=true;persist();} return; }
+    const act=t.closest('[data-act]'); if(act){
+      const kind=act.dataset.act; const a=state.articles[id];
+      if(kind==='save'){ a.saved=!a.saved; persist(); render(); }
+      else if(kind==='read'){ a.read=!a.read; persist(); render(); }
+      else if(kind==='sum'){ summarise(id); }
+      return;
+    }
+  }
+  // header
+  if(t.closest('#refresh')) return refresh();
+  if(t.closest('#openSettings')){ fillSettings(); openSheet('settingsSheet'); return; }
+  if(t.closest('#digestBtn')) return buildDigest();
+  if(t.closest('[data-close]')||t.id==='scrim') return closeSheets();
+  // settings buttons
+  if(t.id==='addFeed'){ const n=document.getElementById('fName').value.trim(), u=document.getElementById('fUrl').value.trim(), c=document.getElementById('fCat').value.trim();
+    if(u){ state.feeds.push({name:n||u.replace(/^https?:\/\//,'').split('/')[0], cat:c, url:u}); document.getElementById('fName').value=''; document.getElementById('fUrl').value=''; document.getElementById('fCat').value=''; persist(); fillSettings(); } return; }
+  if(t.id==='addTopic'){ const n=document.getElementById('tName').value.trim(), k=document.getElementById('tKw').value.trim();
+    if(n&&k){ state.topics.push({name:n, keywords:k.split(',').map(x=>x.trim()).filter(Boolean)}); document.getElementById('tName').value=''; document.getElementById('tKw').value=''; persist(); fillSettings(); } return; }
+  const df=t.closest('[data-delfeed]'); if(df){ state.feeds.splice(+df.dataset.delfeed,1); persist(); fillSettings(); return; }
+  const dt=t.closest('[data-deltopic]'); if(dt){ state.topics.splice(+dt.dataset.deltopic,1); persist(); fillSettings(); return; }
+  if(t.id==='saveSettings') return saveSettingsFromUI();
+  if(t.id==='clearRead'){ Object.values(state.articles).forEach(a=>a.read=false); persist(); render(); return; }
+  if(t.id==='netTest') return runNetTest();
+  if(t.id==='resetAll'){ if(confirm('Reset all feeds, topics, settings and saved stories?')){ state=structuredClone(DEFAULTS); filter={topic:'All',savedOnly:false,unreadOnly:false}; persist(); fillSettings(); render(); } return; }
+});
+
+/* ---------- boot ---------- */
+async function boot(){
+  await DB.open();
+  const saved=await DB.get('state');
+  state = saved || structuredClone(DEFAULTS);
+  // backfill any new default keys
+  state.settings = {...DEFAULTS.settings, ...state.settings};
+  render();
+  if('serviceWorker' in navigator && location.protocol.startsWith('http')){
+    navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+  }
+  // auto-pull if stale (>20 min) or never
+  if(!state.lastRun || Date.now()-state.lastRun > 20*6e4) refresh();
+  else setWire(true,'live · '+rel(state.lastRun)+' ago');
+}
+boot();
+</script>
+</body>
+</html>
